@@ -1,29 +1,13 @@
-from Assets.constants import Color
+from Chess.assets.constants import Color
 from Checkers.Piece import Peon, Queen
-from numpy import sign
-
-
-#TODO maybe add piece count for easier winner check?
-#TODO move Get_All_Moves from Bot to here for easier winner check?
+from math import copysign
 
 class Board:
-    def __init__(self, extra_row = True):
+    def __init__(self, board_pixel_size, extra_row = True):
+        self.square_size = board_pixel_size//8
         self.board = self.create_board(extra_row)
-        
-        #for online moves, imo there is no better way to do it
-        #maybe add online mode check?
-        self.last_removed_pieces_positions = []
 
-    def __repr__(self):
-        return f"Board with eval of {self.Evaluate(Color.BLACK)} in favor of {Color.BLACK.name}"
-    
-    def __hash__(self) -> int:
-        final_hash = 0
-        for row in self.board:
-            for col in row:
-                final_hash += hash(col)
-        return final_hash
-
+    #TODO add check for available moves, so board without moves returns -inf, since its automatic loss
     def Evaluate(self, color):
         eval = 0
         for row in self.board:
@@ -34,25 +18,37 @@ class Board:
                     else:
                         eval -= piece.weight
         return eval
+    
+        """
+        #it doesnt change anything... at least in 4/4 scenario without list shuffle
+        all_moves = []
+        for piece in self.Grab_All_Pieces(color):
+            all_moves.append(self.Valid_moves(piece))
 
+        if all_moves:
+            return eval
+        else:
+            return float("-inf")
+        """
+        
+    #TODO maybe replace with copysign?
     def Get_Middle(self, piece, pos):
         Piece_row, Piece_col = piece.position()
         Jump_row, Jump_col = pos
-
-        Del_row = Jump_row - sign(Jump_row - Piece_row)
-        Del_col = Jump_col - sign(Jump_col - Piece_col)
+            
+        Del_row = Jump_row - int(copysign(1, Jump_row - Piece_row))
+        Del_col = Jump_col - int(copysign(1, Jump_col - Piece_col))
         return (Del_row, Del_col)
 
     def Move(self, piece, pos):
         row, col = pos
         Prow, Pcol = piece.position()
-        
         self.board[Prow][Pcol] = "0"
         if row == 0 and piece.color == Color.WHITE and piece.name() == "Peon":
-            self.board[row][col] = Queen(row, col, Color.WHITE)
+            self.board[row][col] = Queen(row, col, Color.WHITE, self.square_size)
             return True
         elif row == 7 and piece.color == Color.BLACK and piece.name() == "Peon":
-            self.board[row][col] = Queen(row, col, Color.BLACK)
+            self.board[row][col] = Queen(row, col, Color.BLACK, self.square_size)
             return True
         else:
             piece.move(row, col)
@@ -142,23 +138,8 @@ class Board:
     def Remove(self, piece):
         row, col = piece.position()
         self.board[row][col] = "0"
-        
-        #for online moves
-        self.last_removed_pieces_positions.append((row, col))
-     
-    #TODO merge, and and optional argument for online moves 
-    #ONLY for removing pieces from online update
-    def Remove_by_position(self, row, col):
-        self.board[row][col] = "0"
-    
-    #for online moves
-    def Get_Removed_Pieces(self):
-        result = self.last_removed_pieces_positions
-        self.last_removed_pieces_positions = []
-        return result
 
-    #TODO this is kinda ugly, especially since this is happening on every iteration of bot minimax
-    def CheckForWinner(self, check: bool = False):
+    def CheckForWinner(self):
         #piece count check
         white_pieces = self.Grab_All_Pieces(Color.WHITE)
         black_pieces = self.Grab_All_Pieces(Color.BLACK)
@@ -169,31 +150,16 @@ class Board:
             self.winner = Color.WHITE
             return Color.WHITE
         #stalemate check
-        #this should work right?
-        if check:
-            for piece in white_pieces:
-                if piece.ValidMoves(self):
-                    break
-            else:
-                return Color.BLACK
-            
-            for piece in black_pieces:
-                if piece.ValidMoves(self):
-                    break
-            else:
-                return Color.WHITE
-            
-            #white_moves = []
-            #black_moves = []
-            #for piece in white_pieces:
-            #    white_moves += piece.ValidMoves(self)
-            #if white_moves == []:
-            #    return Color.BLACK
-            #for piece in black_pieces:
-            #    black_moves += piece.ValidMoves(self)
-            #if black_moves == []:
-            #    return Color.WHITE
-        
+        white_moves = []
+        black_moves = []
+        for piece in white_pieces:
+            white_moves += piece.ValidMoves(self)
+        if white_moves == []:
+            return Color.BLACK
+        for piece in black_pieces:
+            black_moves += piece.ValidMoves(self)
+        if black_moves == []:
+            return Color.WHITE
 
     def create_board(self, extra_row):
         board = []
@@ -202,13 +168,13 @@ class Board:
             for j in range(8):
                 board[i].append('0')
         for i in range(4):
-            board[0][i*2+1] = Peon(0, i*2+1, Color.BLACK)
-            board[1][i*2] = Peon(1, i*2, Color.BLACK)
-            board[7][i*2] = Peon(7, i*2, Color.WHITE)
-            board[6][i*2+1] = Peon(6, i*2+1, Color.WHITE)
+            board[0][i*2+1] = Peon(0, i*2+1, Color.BLACK, self.square_size)
+            board[1][i*2] = Peon(1, i*2, Color.BLACK, self.square_size)
+            board[7][i*2] = Peon(7, i*2, Color.WHITE, self.square_size)
+            board[6][i*2+1] = Peon(6, i*2+1, Color.WHITE, self.square_size)
             if extra_row:
-                board[2][i*2+1] = Peon(2, i*2+1, Color.BLACK)
-                board[5][i*2] = Peon(5, i*2, Color.WHITE)
+                board[2][i*2+1] = Peon(2, i*2+1, Color.BLACK, self.square_size)
+                board[5][i*2] = Peon(5, i*2, Color.WHITE, self.square_size)
         return board
 
     #Checks the status of the square, "0" for free space, False for same color/invalid space, True for enemy color
@@ -227,7 +193,3 @@ class Board:
     def Print_Board(self):
         for row in self.board:
             print(row)
-            
-            
-
-

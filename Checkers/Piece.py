@@ -1,23 +1,18 @@
-from Assets.constants import Color
-
-#TODO add static variable for piece count, for easier winner check and add deconstruction method
-#piece count would have to depend on the piece color.
+from Chess.assets.constants import Color
 
 class Piece:
-    img_scale = 0.75
-    def __init__(self, row, col, color):
+    def __init__(self, row, col, color, square_size):
         self.row = row
         self.col = col
         self.color = color
+        self.img_scale = 0.75
+        self.square_size = square_size
+        self.img_size = self.square_size * self.img_scale
         self.AssignColorValues()
-        
-    #def __del__(self):
-    #    print(f"{self} has been removed")
 
-    def calc_img_position(self, square_size):
-        img_size = int(square_size * self.img_scale)
-        x = (square_size * self.col) + (square_size - img_size)/2
-        y = (square_size * self.row) + (square_size - img_size)/2
+    def calc_img_position(self):
+        x = (self.square_size * self.col) + (self.square_size - self.img_size)//2
+        y = (self.square_size * self.row) + (self.square_size - self.img_size)//2
         return x, y
 
     def move(self, row, col):
@@ -35,14 +30,10 @@ class Piece:
     #better __str__, returns this instead of memory address whenever function is called
     def __repr__(self):
         return f"<{self.color.name} {self.__class__.__name__} at: {self.row}, {self.col}>"
-    
-    def __hash__(self) -> int:
-        return hash((self.row, self.col, self.color, self.__class__.__name__))
-    
 
 class Peon(Piece):
-    def __init__(self, row, col, color):
-        super().__init__(row, col, color)
+    def __init__(self, row, col, color, image_size):
+        super().__init__(row, col, color, image_size)
         self.weight = 1
 
     def Short_ValidMoves(self, board):
@@ -70,13 +61,13 @@ class Peon(Piece):
     def AssignColorValues(self):
         match self.color:
             case Color.WHITE:
-                self.img_path = 'Assets/img/white_pawn.png'
+                self.img_path = 'Chess/assets/img/white_pawn.png'
             case Color.BLACK:
-                self.img_path = 'Assets/img/black_pawn.png'
+                self.img_path = 'Chess/assets/img/black_pawn.png'
 
 class Queen(Piece):
-    def __init__(self, row, col, color):
-        super().__init__(row, col, color)
+    def __init__(self, row, col, color, image_size):
+        super().__init__(row, col, color, image_size)
         self.weight = 1.5
         
     def Short_ValidMoves(self, board):
@@ -109,6 +100,6 @@ class Queen(Piece):
     def AssignColorValues(self):
         match self.color:
             case Color.WHITE:
-                self.img_path = 'Assets/img/white_queen.png'
+                self.img_path = 'Chess/assets/img/white_queen.png'
             case Color.BLACK:
-                self.img_path = 'Assets/img/black_queen.png'
+                self.img_path = 'Chess/assets/img/black_queen.png'
